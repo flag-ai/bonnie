@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          go build -ldflags "\
+            -X github.com/flag-ai/commons/version.Version=${{ github.ref_name }} \
+            -X github.com/flag-ai/commons/version.Commit=${{ github.sha }} \
+            -X github.com/flag-ai/commons/version.Date=$(date -u +%Y-%m-%d)" \
+            -o bonnie-${{ matrix.goos }}-${{ matrix.goarch }} \
+            ./cmd/bonnie
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bonnie-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bonnie-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*
