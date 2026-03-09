@@ -1,0 +1,17 @@
+# Binaries
+/bonnie
+*.exe
+
+# Test
+coverage.out
+*.test
+
+# Vendor
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
