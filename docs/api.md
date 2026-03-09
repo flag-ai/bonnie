@@ -49,7 +49,7 @@ Readiness check. Verifies Docker socket connectivity.
 
 **Response 503:**
 ```json
-{"ready": false, "error": "connection refused"}
+{"ready": false}
 ```
 
 ### GET /metrics
@@ -208,7 +208,7 @@ Inspect a container. Returns full Docker inspect response.
 
 **Response 404:**
 ```json
-{"error": "inspect container abc123: No such container"}
+{"error": "container not found"}
 ```
 
 ### POST /api/v1/containers/{id}/start
