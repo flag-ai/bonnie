@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	containertypes "github.com/docker/docker/api/types/container"
 	networktypes "github.com/docker/docker/api/types/network"
@@ -13,13 +14,12 @@ import (
 
 // CreateRequest describes a container to create.
 type CreateRequest struct {
-	Name    string            `json:"name"`
-	Image   string            `json:"image"`
-	Env     []string          `json:"env,omitempty"`
-	Mounts  []string          `json:"mounts,omitempty"`
-	Ports   map[string]string `json:"ports,omitempty"`
-	GPU     bool              `json:"gpu"`
-	Command []string          `json:"command,omitempty"`
+	Name    string   `json:"name"`
+	Image   string   `json:"image"`
+	Env     []string `json:"env,omitempty"`
+	Mounts  []string `json:"mounts,omitempty"`
+	GPU     bool     `json:"gpu"`
+	Command []string `json:"command,omitempty"`
 }
 
 // Info is a summary of a container's state.
@@ -129,7 +129,7 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 	for i, c := range containers {
 		name := ""
 		if len(c.Names) > 0 {
-			name = c.Names[0]
+			name = strings.TrimPrefix(c.Names[0], "/")
 		}
 		result[i] = Info{
 			ID:      c.ID,

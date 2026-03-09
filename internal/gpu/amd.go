@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -33,13 +34,20 @@ func parseAMDOutput(data []byte) ([]Info, error) {
 		return nil, fmt.Errorf("rocm-smi: invalid JSON: %w", err)
 	}
 
+	// Sort keys for deterministic GPU index assignment
+	var cardKeys []string
+	for key := range raw {
+		if strings.HasPrefix(key, "card") {
+			cardKeys = append(cardKeys, key)
+		}
+	}
+	sort.Strings(cardKeys)
+
 	var gpus []Info
 	index := 0
 
-	for key, val := range raw {
-		if !strings.HasPrefix(key, "card") {
-			continue
-		}
+	for _, key := range cardKeys {
+		val := raw[key]
 
 		var dev rocmDevice
 		if err := json.Unmarshal(val, &dev); err != nil {

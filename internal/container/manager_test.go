@@ -208,7 +208,7 @@ func TestManager_List(t *testing.T) {
 	require.Len(t, containers, 2)
 
 	assert.Equal(t, "abc123", containers[0].ID)
-	assert.Equal(t, "/test1", containers[0].Name)
+	assert.Equal(t, "test1", containers[0].Name)
 	assert.Equal(t, "running", containers[0].State)
 }
 

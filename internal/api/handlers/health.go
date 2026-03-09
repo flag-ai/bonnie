@@ -2,7 +2,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -42,8 +41,8 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 }
 
 // Ready checks that the Docker socket is reachable.
-func (h *HealthHandler) Ready(w http.ResponseWriter, _ *http.Request) {
-	_, err := h.docker.Ping(context.Background())
+func (h *HealthHandler) Ready(w http.ResponseWriter, r *http.Request) {
+	_, err := h.docker.Ping(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {

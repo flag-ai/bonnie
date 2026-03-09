@@ -52,6 +52,9 @@ func Load(ctx context.Context, provider secrets.Provider) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config: BONNIE_POLL_INTERVAL must be an integer: %w", err)
 	}
+	if pollInterval <= 0 {
+		return nil, fmt.Errorf("config: BONNIE_POLL_INTERVAL must be positive, got %d", pollInterval)
+	}
 
 	return &Config{
 		Component:    "bonnie",

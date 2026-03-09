@@ -96,6 +96,19 @@ func TestLoad_InvalidPollInterval(t *testing.T) {
 	assert.Contains(t, err.Error(), "BONNIE_POLL_INTERVAL")
 }
 
+func TestLoad_ZeroPollInterval(t *testing.T) {
+	t.Parallel()
+
+	provider := &mockProvider{values: map[string]string{
+		"BONNIE_AUTH_TOKEN":    "token",
+		"BONNIE_POLL_INTERVAL": "0",
+	}}
+
+	_, err := config.Load(context.Background(), provider)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "BONNIE_POLL_INTERVAL")
+}
+
 func TestLoad_NilProvider(t *testing.T) {
 	t.Parallel()
 
