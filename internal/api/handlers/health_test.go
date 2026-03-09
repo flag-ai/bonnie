@@ -128,4 +128,6 @@ func TestReady_DockerDown(t *testing.T) {
 	err := json.NewDecoder(rec.Body).Decode(&body)
 	assert.NoError(t, err)
 	assert.Equal(t, false, body["ready"])
+	// Error details are logged, not returned to client
+	assert.NotContains(t, body, "error")
 }

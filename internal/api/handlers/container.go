@@ -31,7 +31,8 @@ func NewContainerHandler(manager *container.Manager, docker container.DockerClie
 func (h *ContainerHandler) List(w http.ResponseWriter, r *http.Request) {
 	containers, err := h.manager.List(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to list containers", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to list containers")
 		return
 	}
 
@@ -56,7 +57,8 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.manager.Create(r.Context(), req)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to create container", "error", err, "image", req.Image)
+		writeError(w, http.StatusInternalServerError, "failed to create container")
 		return
 	}
 
@@ -73,7 +75,8 @@ func (h *ContainerHandler) Inspect(w http.ResponseWriter, r *http.Request) {
 
 	info, err := h.manager.Inspect(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err.Error())
+		h.logger.Error("failed to inspect container", "error", err, "id", id)
+		writeError(w, http.StatusNotFound, "container not found")
 		return
 	}
 
@@ -88,7 +91,8 @@ func (h *ContainerHandler) Start(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.manager.Start(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to start container", "error", err, "id", id)
+		writeError(w, http.StatusInternalServerError, "failed to start container")
 		return
 	}
 
@@ -103,7 +107,8 @@ func (h *ContainerHandler) Stop(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.manager.Stop(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to stop container", "error", err, "id", id)
+		writeError(w, http.StatusInternalServerError, "failed to stop container")
 		return
 	}
 
@@ -118,7 +123,8 @@ func (h *ContainerHandler) Restart(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.manager.Restart(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to restart container", "error", err, "id", id)
+		writeError(w, http.StatusInternalServerError, "failed to restart container")
 		return
 	}
 
@@ -133,7 +139,8 @@ func (h *ContainerHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.manager.Remove(r.Context(), id, true); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to remove container", "error", err, "id", id)
+		writeError(w, http.StatusInternalServerError, "failed to remove container")
 		return
 	}
 

@@ -24,7 +24,8 @@ func NewSystemHandler(runner gpu.CommandRunner, logger *slog.Logger) *SystemHand
 func (h *SystemHandler) Info(w http.ResponseWriter, r *http.Request) {
 	info, err := system.Collect(r.Context(), h.runner)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		h.logger.Error("failed to collect system info", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to collect system info")
 		return
 	}
 

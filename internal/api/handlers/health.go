@@ -47,10 +47,10 @@ func (h *HealthHandler) Ready(w http.ResponseWriter, _ *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
+		h.logger.Error("docker not ready", "error", err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		if encErr := json.NewEncoder(w).Encode(map[string]any{
 			"ready": false,
-			"error": err.Error(),
 		}); encErr != nil {
 			h.logger.Error("failed to encode ready response", "error", encErr)
 		}
