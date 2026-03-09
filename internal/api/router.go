@@ -25,7 +25,7 @@ type RouterConfig struct {
 }
 
 // NewRouter creates a Chi router with all BONNIE API routes and middleware.
-func NewRouter(cfg RouterConfig) *chi.Mux {
+func NewRouter(cfg *RouterConfig) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Global middleware

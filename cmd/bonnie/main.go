@@ -76,7 +76,7 @@ func run() error {
 	registry.Register(&dockerChecker{client: dockerClient})
 
 	// Build router
-	router := api.NewRouter(api.RouterConfig{
+	router := api.NewRouter(&api.RouterConfig{
 		Logger:    logger,
 		AuthToken: cfg.AuthToken,
 		Registry:  registry,

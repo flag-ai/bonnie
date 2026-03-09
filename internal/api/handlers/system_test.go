@@ -25,7 +25,7 @@ func TestSystemInfo(t *testing.T) {
 
 	h := handlers.NewSystemHandler(runner, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/info", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/info", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Info(rec, req)

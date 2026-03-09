@@ -27,7 +27,7 @@ func TestContainerList(t *testing.T) {
 
 	h := newContainerHandler()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/containers", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/containers", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.List(rec, req)
@@ -94,7 +94,7 @@ func TestContainerStart(t *testing.T) {
 	r := chi.NewRouter()
 	r.Post("/containers/{id}/start", h.Start)
 
-	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/start", nil)
+	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/start", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -110,7 +110,7 @@ func TestContainerStop(t *testing.T) {
 	r := chi.NewRouter()
 	r.Post("/containers/{id}/stop", h.Stop)
 
-	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/stop", nil)
+	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/stop", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -126,7 +126,7 @@ func TestContainerRestart(t *testing.T) {
 	r := chi.NewRouter()
 	r.Post("/containers/{id}/restart", h.Restart)
 
-	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/restart", nil)
+	req := httptest.NewRequest(http.MethodPost, "/containers/abc123def456/restart", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -142,7 +142,7 @@ func TestContainerRemove(t *testing.T) {
 	r := chi.NewRouter()
 	r.Delete("/containers/{id}", h.Remove)
 
-	req := httptest.NewRequest(http.MethodDelete, "/containers/abc123def456", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/containers/abc123def456", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)

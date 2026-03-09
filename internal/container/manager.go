@@ -49,7 +49,7 @@ func NewManager(client DockerClient, gpuVendor gpu.Vendor, logger *slog.Logger) 
 }
 
 // Create creates a new container.
-func (m *Manager) Create(ctx context.Context, req CreateRequest) (string, error) {
+func (m *Manager) Create(ctx context.Context, req *CreateRequest) (string, error) {
 	config := &containertypes.Config{
 		Image: req.Image,
 		Env:   req.Env,
@@ -126,18 +126,18 @@ func (m *Manager) List(ctx context.Context) ([]Info, error) {
 	}
 
 	result := make([]Info, len(containers))
-	for i, c := range containers {
+	for i := range containers {
 		name := ""
-		if len(c.Names) > 0 {
-			name = strings.TrimPrefix(c.Names[0], "/")
+		if len(containers[i].Names) > 0 {
+			name = strings.TrimPrefix(containers[i].Names[0], "/")
 		}
 		result[i] = Info{
-			ID:      c.ID,
+			ID:      containers[i].ID,
 			Name:    name,
-			Image:   c.Image,
-			State:   c.State,
-			Status:  c.Status,
-			Created: c.Created,
+			Image:   containers[i].Image,
+			State:   containers[i].State,
+			Status:  containers[i].Status,
+			Created: containers[i].Created,
 		}
 	}
 

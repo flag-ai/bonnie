@@ -91,7 +91,7 @@ func TestManager_Create(t *testing.T) {
 
 	mgr := container.NewManager(client, gpu.VendorNVIDIA, newTestLogger())
 
-	id, err := mgr.Create(context.Background(), container.CreateRequest{
+	id, err := mgr.Create(context.Background(), &container.CreateRequest{
 		Name:  "test-container",
 		Image: "ubuntu:latest",
 		GPU:   true,
@@ -110,7 +110,7 @@ func TestManager_Create_Error(t *testing.T) {
 
 	mgr := container.NewManager(client, gpu.VendorUnknown, newTestLogger())
 
-	_, err := mgr.Create(context.Background(), container.CreateRequest{
+	_, err := mgr.Create(context.Background(), &container.CreateRequest{
 		Image: "nonexistent:latest",
 	})
 

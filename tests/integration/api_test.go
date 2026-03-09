@@ -107,7 +107,7 @@ func setupRouter(t *testing.T) *httptest.Server {
 	mgr := container.NewManager(docker, gpu.VendorNVIDIA, logger)
 	registry := health.NewRegistry()
 
-	router := api.NewRouter(api.RouterConfig{
+	router := api.NewRouter(&api.RouterConfig{
 		Logger:    logger,
 		AuthToken: "test-token",
 		Registry:  registry,
@@ -184,7 +184,7 @@ func TestIntegration_AuthWithToken(t *testing.T) {
 	srv := setupRouter(t)
 	defer srv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/system/info", nil)
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/system/info", http.NoBody)
 	req.Header.Set("Authorization", "Bearer test-token")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -200,7 +200,7 @@ func TestIntegration_GPUStatus(t *testing.T) {
 	srv := setupRouter(t)
 	defer srv.Close()
 
-	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/gpu/status", nil)
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/gpu/status", http.NoBody)
 	req.Header.Set("Authorization", "Bearer test-token")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -239,7 +239,7 @@ func TestIntegration_ContainerLifecycle(t *testing.T) {
 	assert.NotEmpty(t, createResp["id"])
 
 	// List containers
-	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/api/v1/containers", nil)
+	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/api/v1/containers", http.NoBody)
 	req.Header.Set("Authorization", "Bearer test-token")
 
 	resp2, err := http.DefaultClient.Do(req)

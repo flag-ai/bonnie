@@ -49,7 +49,7 @@ func TestGPUStatus(t *testing.T) {
 
 	h := handlers.NewGPUHandler(poller, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/gpu/status", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/gpu/status", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Status(rec, req)
@@ -83,7 +83,7 @@ func TestGPUMetrics(t *testing.T) {
 
 	h := handlers.NewGPUHandler(poller, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/gpu/metrics", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/gpu/metrics", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Metrics(rec, req)

@@ -55,7 +55,7 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.manager.Create(r.Context(), req)
+	id, err := h.manager.Create(r.Context(), &req)
 	if err != nil {
 		h.logger.Error("failed to create container", "error", err, "image", req.Image)
 		writeError(w, http.StatusInternalServerError, "failed to create container")

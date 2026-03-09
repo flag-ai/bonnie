@@ -79,7 +79,7 @@ func TestHealth_Healthy(t *testing.T) {
 	docker := &mockDockerClient{}
 	h := handlers.NewHealthHandler(registry, docker, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Health(rec, req)
@@ -98,7 +98,7 @@ func TestReady_DockerUp(t *testing.T) {
 	docker := &mockDockerClient{}
 	h := handlers.NewHealthHandler(health.NewRegistry(), docker, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ready", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Ready(rec, req)
@@ -117,7 +117,7 @@ func TestReady_DockerDown(t *testing.T) {
 	docker := &mockDockerClient{pingErr: fmt.Errorf("connection refused")}
 	h := handlers.NewHealthHandler(health.NewRegistry(), docker, newTestLogger())
 
-	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ready", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	h.Ready(rec, req)
