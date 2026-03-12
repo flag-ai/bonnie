@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# DEPRECATED: This standalone install script is superseded by the KARR-managed
+# install flow. Use the "Generate Install Command" button in the KARR UI to get
+# a one-command installer that automatically registers the agent.
+# See: flag-commons/install/ package.
+
 # BONNIE Install Script
 # Downloads the latest release binary and sets up a systemd service.
 
