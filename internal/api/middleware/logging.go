@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-// responseWriter wraps http.ResponseWriter to capture the status code.
+// responseWriter wraps http.ResponseWriter to capture the status code while
+// preserving the optional Flusher interface used by SSE handlers.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
@@ -16,6 +17,14 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Flush forwards to the underlying writer if it supports flushing. SSE
+// handlers rely on this to push each event to the client immediately.
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
 
 // Logging returns middleware that logs each request with method, path, status, and duration.

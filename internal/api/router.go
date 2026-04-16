@@ -15,13 +15,15 @@ import (
 
 // RouterConfig holds dependencies for building the API router.
 type RouterConfig struct {
-	Logger    *slog.Logger
-	AuthToken string
-	Registry  *health.Registry
-	Docker    container.DockerClient
-	Manager   *container.Manager
-	Poller    *gpu.Poller
-	Runner    gpu.CommandRunner
+	Logger       *slog.Logger
+	AuthToken    string
+	Registry     *health.Registry
+	Docker       container.DockerClient
+	Manager      *container.Manager
+	Poller       *gpu.Poller
+	Runner       gpu.CommandRunner
+	ModelStore   handlers.ModelStore
+	PairedRunner handlers.PairedRunner
 }
 
 // NewRouter creates a Chi router with all BONNIE API routes and middleware.
@@ -68,6 +70,22 @@ func NewRouter(cfg *RouterConfig) *chi.Mux {
 			// Exec
 			execH := handlers.NewExecHandler(cfg.Runner, cfg.Logger)
 			r.Post("/exec", execH.Exec)
+
+			// Models (model-storage endpoints)
+			if cfg.ModelStore != nil {
+				modelsH := handlers.NewModelsHandler(cfg.ModelStore, cfg.Logger)
+				r.Route("/models", func(r chi.Router) {
+					r.Get("/", modelsH.List)
+					r.Post("/fetch", modelsH.Fetch)
+					r.Delete("/{id}", modelsH.Delete)
+				})
+			}
+
+			// Benchmark (paired engine+benchmark run)
+			if cfg.PairedRunner != nil {
+				benchmarkH := handlers.NewBenchmarkHandler(cfg.PairedRunner, cfg.Logger)
+				r.Post("/benchmark", benchmarkH.Run)
+			}
 		})
 	})
 
