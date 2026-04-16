@@ -14,6 +14,7 @@ import (
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	networktypes "github.com/docker/docker/api/types/network"
+	volumetypes "github.com/docker/docker/api/types/volume"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 
@@ -61,6 +62,34 @@ func (m *mockDockerClient) ContainerLogs(_ context.Context, _ string, _ containe
 func (m *mockDockerClient) ImagePull(_ context.Context, _ string, _ image.PullOptions) (io.ReadCloser, error) {
 	return nil, nil
 }
+
+func (m *mockDockerClient) ContainerWait(_ context.Context, _ string, _ containertypes.WaitCondition) (respCh <-chan containertypes.WaitResponse, errCh <-chan error) {
+	ch := make(chan containertypes.WaitResponse, 1)
+	errs := make(chan error, 1)
+	ch <- containertypes.WaitResponse{StatusCode: 0}
+	return ch, errs
+}
+
+func (m *mockDockerClient) CopyToContainer(_ context.Context, _, _ string, _ io.Reader, _ containertypes.CopyToContainerOptions) error {
+	return nil
+}
+
+func (m *mockDockerClient) CopyFromContainer(_ context.Context, _, _ string) (io.ReadCloser, containertypes.PathStat, error) {
+	return nil, containertypes.PathStat{}, fmt.Errorf("not implemented")
+}
+
+//nolint:gocritic // hugeParam: signature matches DockerClient interface.
+func (m *mockDockerClient) NetworkCreate(_ context.Context, _ string, _ networktypes.CreateOptions) (networktypes.CreateResponse, error) {
+	return networktypes.CreateResponse{}, nil
+}
+
+func (m *mockDockerClient) NetworkRemove(_ context.Context, _ string) error { return nil }
+
+func (m *mockDockerClient) VolumeCreate(_ context.Context, _ volumetypes.CreateOptions) (volumetypes.Volume, error) {
+	return volumetypes.Volume{}, nil
+}
+
+func (m *mockDockerClient) VolumeRemove(_ context.Context, _ string, _ bool) error { return nil }
 
 func (m *mockDockerClient) Ping(_ context.Context) (types.Ping, error) {
 	return types.Ping{}, m.pingErr
