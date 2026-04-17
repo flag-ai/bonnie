@@ -48,6 +48,66 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "test-token", cfg.AuthToken)
 	assert.Equal(t, 10, cfg.PollInterval)
 	assert.Equal(t, "unix:///var/run/docker.sock", cfg.DockerHost)
+	assert.Equal(t, "/var/lib/bonnie/models", cfg.ModelStorageDir)
+	assert.Empty(t, cfg.HFToken)
+}
+
+func TestLoad_ModelStorageDir_Override(t *testing.T) {
+	t.Parallel()
+
+	provider := &mockProvider{values: map[string]string{
+		"BONNIE_AUTH_TOKEN":        "t",
+		"BONNIE_MODEL_STORAGE_DIR": "/srv/models",
+	}}
+
+	cfg, err := config.Load(context.Background(), provider)
+	require.NoError(t, err)
+	assert.Equal(t, "/srv/models", cfg.ModelStorageDir)
+}
+
+func TestLoad_HFToken_PrefersBonnieKey(t *testing.T) {
+	t.Parallel()
+
+	//nolint:gosec // test literals, not real credentials.
+	provider := &mockProvider{values: map[string]string{
+		"BONNIE_AUTH_TOKEN": "t",
+		"bonnie/hf_token":   "from-bao",
+		"BONNIE_HF_TOKEN":   "from-env",
+		"HF_TOKEN":          "from-hf-env",
+	}}
+
+	cfg, err := config.Load(context.Background(), provider)
+	require.NoError(t, err)
+	assert.Equal(t, "from-bao", cfg.HFToken)
+}
+
+func TestLoad_HFToken_FallsBackToBonnieEnv(t *testing.T) {
+	t.Parallel()
+
+	//nolint:gosec // test literals, not real credentials.
+	provider := &mockProvider{values: map[string]string{
+		"BONNIE_AUTH_TOKEN": "t",
+		"BONNIE_HF_TOKEN":   "from-env",
+		"HF_TOKEN":          "from-hf-env",
+	}}
+
+	cfg, err := config.Load(context.Background(), provider)
+	require.NoError(t, err)
+	assert.Equal(t, "from-env", cfg.HFToken)
+}
+
+func TestLoad_HFToken_FallsBackToHFTokenEnv(t *testing.T) {
+	t.Parallel()
+
+	//nolint:gosec // test literals, not real credentials.
+	provider := &mockProvider{values: map[string]string{
+		"BONNIE_AUTH_TOKEN": "t",
+		"HF_TOKEN":          "from-hf-env",
+	}}
+
+	cfg, err := config.Load(context.Background(), provider)
+	require.NoError(t, err)
+	assert.Equal(t, "from-hf-env", cfg.HFToken)
 }
 
 func TestLoad_CustomValues(t *testing.T) {

@@ -33,6 +33,13 @@ type Config struct {
 
 	// DockerHost is the Docker daemon socket path.
 	DockerHost string
+
+	// ModelStorageDir is the on-disk cache directory for staged models.
+	ModelStorageDir string
+
+	// HFToken is the optional HuggingFace token used when fetching gated
+	// models. Empty string means "fetches of gated models will fail".
+	HFToken string
 }
 
 // Load builds a BONNIE Config by reading environment variables via the secrets provider.
@@ -56,14 +63,26 @@ func Load(ctx context.Context, provider secrets.Provider) (*Config, error) {
 		return nil, fmt.Errorf("config: BONNIE_POLL_INTERVAL must be positive, got %d", pollInterval)
 	}
 
+	// Optional HuggingFace token: prefer bonnie/hf_token, then
+	// BONNIE_HF_TOKEN, then HF_TOKEN. Empty string is valid.
+	hfToken := provider.GetOrDefault(ctx, "bonnie/hf_token", "")
+	if hfToken == "" {
+		hfToken = provider.GetOrDefault(ctx, "BONNIE_HF_TOKEN", "")
+	}
+	if hfToken == "" {
+		hfToken = provider.GetOrDefault(ctx, "HF_TOKEN", "")
+	}
+
 	return &Config{
-		Component:    "bonnie",
-		LogLevel:     provider.GetOrDefault(ctx, "LOG_LEVEL", "info"),
-		LogFormat:    provider.GetOrDefault(ctx, "LOG_FORMAT", "text"),
-		ListenAddr:   provider.GetOrDefault(ctx, "BONNIE_LISTEN_ADDR", ":7777"),
-		AuthToken:    authToken,
-		PollInterval: pollInterval,
-		DockerHost:   provider.GetOrDefault(ctx, "BONNIE_DOCKER_HOST", "unix:///var/run/docker.sock"),
+		Component:       "bonnie",
+		LogLevel:        provider.GetOrDefault(ctx, "LOG_LEVEL", "info"),
+		LogFormat:       provider.GetOrDefault(ctx, "LOG_FORMAT", "text"),
+		ListenAddr:      provider.GetOrDefault(ctx, "BONNIE_LISTEN_ADDR", ":7777"),
+		AuthToken:       authToken,
+		PollInterval:    pollInterval,
+		DockerHost:      provider.GetOrDefault(ctx, "BONNIE_DOCKER_HOST", "unix:///var/run/docker.sock"),
+		ModelStorageDir: provider.GetOrDefault(ctx, "BONNIE_MODEL_STORAGE_DIR", "/var/lib/bonnie/models"),
+		HFToken:         hfToken,
 	}, nil
 }
 

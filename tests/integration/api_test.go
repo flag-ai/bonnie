@@ -16,6 +16,7 @@ import (
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	networktypes "github.com/docker/docker/api/types/network"
+	volumetypes "github.com/docker/docker/api/types/volume"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ import (
 	"github.com/flag-ai/bonnie/internal/api"
 	"github.com/flag-ai/bonnie/internal/container"
 	"github.com/flag-ai/bonnie/internal/gpu"
+	"github.com/flag-ai/bonnie/internal/storage"
 	"github.com/flag-ai/commons/health"
 )
 
@@ -69,6 +71,34 @@ func (m *mockDockerClient) ImagePull(_ context.Context, _ string, _ image.PullOp
 	return nil, nil
 }
 
+func (m *mockDockerClient) ContainerWait(_ context.Context, _ string, _ containertypes.WaitCondition) (respCh <-chan containertypes.WaitResponse, errCh <-chan error) {
+	ch := make(chan containertypes.WaitResponse, 1)
+	errs := make(chan error, 1)
+	ch <- containertypes.WaitResponse{StatusCode: 0}
+	return ch, errs
+}
+
+func (m *mockDockerClient) CopyToContainer(_ context.Context, _, _ string, _ io.Reader, _ containertypes.CopyToContainerOptions) error {
+	return nil
+}
+
+func (m *mockDockerClient) CopyFromContainer(_ context.Context, _, _ string) (io.ReadCloser, containertypes.PathStat, error) {
+	return nil, containertypes.PathStat{}, fmt.Errorf("not implemented")
+}
+
+//nolint:gocritic // hugeParam: signature matches DockerClient interface.
+func (m *mockDockerClient) NetworkCreate(_ context.Context, _ string, _ networktypes.CreateOptions) (networktypes.CreateResponse, error) {
+	return networktypes.CreateResponse{}, nil
+}
+
+func (m *mockDockerClient) NetworkRemove(_ context.Context, _ string) error { return nil }
+
+func (m *mockDockerClient) VolumeCreate(_ context.Context, _ volumetypes.CreateOptions) (volumetypes.Volume, error) {
+	return volumetypes.Volume{}, nil
+}
+
+func (m *mockDockerClient) VolumeRemove(_ context.Context, _ string, _ bool) error { return nil }
+
 func (m *mockDockerClient) Ping(_ context.Context) (types.Ping, error) {
 	return types.Ping{}, nil
 }
@@ -107,17 +137,71 @@ func setupRouter(t *testing.T) *httptest.Server {
 	mgr := container.NewManager(docker, gpu.VendorNVIDIA, logger)
 	registry := health.NewRegistry()
 
+	// A fake model store + runner lets us exercise the new routes without
+	// touching huggingface or Docker.
+	store := &stubModelStore{entries: map[string]storage.Entry{}}
+
 	router := api.NewRouter(&api.RouterConfig{
-		Logger:    logger,
-		AuthToken: "test-token",
-		Registry:  registry,
-		Docker:    docker,
-		Manager:   mgr,
-		Poller:    poller,
-		Runner:    runner,
+		Logger:       logger,
+		AuthToken:    "test-token",
+		Registry:     registry,
+		Docker:       docker,
+		Manager:      mgr,
+		Poller:       poller,
+		Runner:       runner,
+		ModelStore:   store,
+		PairedRunner: &stubPairedRunner{},
 	})
 
 	return httptest.NewServer(router)
+}
+
+// stubModelStore is an in-memory ModelStore for routing tests.
+type stubModelStore struct {
+	entries map[string]storage.Entry
+}
+
+//nolint:gocritic // hugeParam: signature matches ModelStore interface.
+func (s *stubModelStore) Fetch(_ context.Context, req storage.FetchRequest) (storage.Entry, error) {
+	// Use a URL-safe synthetic id so the chi URL param round-trips cleanly.
+	id := "m-" + fmt.Sprintf("%d", len(s.entries)+1)
+	e := storage.Entry{ID: id, Source: req.Source, ModelID: req.ModelID, Path: "/tmp/" + id}
+	s.entries[id] = e
+	return e, nil
+}
+
+func (s *stubModelStore) List(_ context.Context) ([]storage.Entry, error) {
+	out := make([]storage.Entry, 0, len(s.entries))
+	for id := range s.entries {
+		out = append(out, s.entries[id])
+	}
+	return out, nil
+}
+
+func (s *stubModelStore) Get(_ context.Context, id string) (storage.Entry, error) {
+	e, ok := s.entries[id]
+	if !ok {
+		return storage.Entry{}, storage.ErrNotFound
+	}
+	return e, nil
+}
+
+func (s *stubModelStore) Delete(_ context.Context, id string) error {
+	if _, ok := s.entries[id]; !ok {
+		return storage.ErrNotFound
+	}
+	delete(s.entries, id)
+	return nil
+}
+
+// stubPairedRunner emits a single result event and returns.
+type stubPairedRunner struct{}
+
+//nolint:gocritic // hugeParam: signature matches PairedRunner interface.
+func (s *stubPairedRunner) PairedRun(_ context.Context, _ container.PairedRunSpec, events chan<- container.PairedRunEvent) error {
+	defer close(events)
+	events <- container.PairedRunEvent{Type: "result", Phase: "done", Timestamp: time.Now().UTC()}
+	return nil
 }
 
 func TestIntegration_HealthEndpoint(t *testing.T) {
@@ -247,4 +331,77 @@ func TestIntegration_ContainerLifecycle(t *testing.T) {
 	defer func() { _ = resp2.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+}
+
+func TestIntegration_ModelsFetchListDelete(t *testing.T) {
+	t.Parallel()
+
+	srv := setupRouter(t)
+	defer srv.Close()
+
+	// Fetch a model.
+	body := `{"source":"huggingface","model_id":"org/x"}`
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/v1/models/fetch", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entry storage.Entry
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entry))
+	assert.Equal(t, "huggingface", entry.Source)
+	assert.Equal(t, "org/x", entry.ModelID)
+
+	// List models.
+	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/api/v1/models", http.NoBody)
+	req.Header.Set("Authorization", "Bearer test-token")
+	resp2, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp2.Body.Close() }()
+	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+	var entries []storage.Entry
+	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	// Delete.
+	req, _ = http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/models/"+entry.ID, http.NoBody)
+	req.Header.Set("Authorization", "Bearer test-token")
+	resp3, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp3.Body.Close() }()
+	assert.Equal(t, http.StatusNoContent, resp3.StatusCode)
+
+	// Delete again → 404.
+	req, _ = http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/models/"+entry.ID, http.NoBody)
+	req.Header.Set("Authorization", "Bearer test-token")
+	resp4, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp4.Body.Close() }()
+	assert.Equal(t, http.StatusNotFound, resp4.StatusCode)
+}
+
+func TestIntegration_BenchmarkSSE(t *testing.T) {
+	t.Parallel()
+
+	srv := setupRouter(t)
+	defer srv.Close()
+
+	body := `{"run_id":"r1","engine":{"image":"e"},"benchmark":{"image":"b","kind":"container"}}`
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/v1/benchmark", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer test-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "text/event-stream", resp.Header.Get("Content-Type"))
+
+	payload, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(payload), `"type":"result"`)
+	assert.Contains(t, string(payload), `"phase":"done"`)
 }

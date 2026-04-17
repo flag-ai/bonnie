@@ -22,6 +22,7 @@ import (
 	"github.com/flag-ai/bonnie/internal/config"
 	"github.com/flag-ai/bonnie/internal/container"
 	"github.com/flag-ai/bonnie/internal/gpu"
+	"github.com/flag-ai/bonnie/internal/storage"
 )
 
 func main() {
@@ -71,19 +72,30 @@ func run() error {
 	// Container manager
 	manager := container.NewManager(dockerClient, snap.Vendor, logger)
 
+	// Model storage cache (fatal if the directory can't be created).
+	if cfg.HFToken == "" {
+		logger.Warn("HF token not configured; fetches of gated HuggingFace models will fail")
+	}
+	modelStore, err := storage.NewStore(cfg.ModelStorageDir, logger, cfg.HFToken)
+	if err != nil {
+		return err
+	}
+
 	// Health registry with Docker socket checker
 	registry := health.NewRegistry()
 	registry.Register(&dockerChecker{client: dockerClient})
 
 	// Build router
 	router := api.NewRouter(&api.RouterConfig{
-		Logger:    logger,
-		AuthToken: cfg.AuthToken,
-		Registry:  registry,
-		Docker:    dockerClient,
-		Manager:   manager,
-		Poller:    poller,
-		Runner:    runner,
+		Logger:       logger,
+		AuthToken:    cfg.AuthToken,
+		Registry:     registry,
+		Docker:       dockerClient,
+		Manager:      manager,
+		Poller:       poller,
+		Runner:       runner,
+		ModelStore:   modelStore,
+		PairedRunner: manager,
 	})
 
 	srv := &http.Server{
