@@ -46,6 +46,10 @@ func (h *BenchmarkHandler) Run(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "run_id is required")
 		return
 	}
+	if err := container.ValidateRunID(spec.RunID); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if spec.Engine.Image == "" {
 		writeError(w, http.StatusBadRequest, "engine.image is required")
 		return

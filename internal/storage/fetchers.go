@@ -70,8 +70,15 @@ type nfsFetcher struct {
 //nolint:gocritic // hugeParam: signature matches Fetcher interface.
 func (f *nfsFetcher) Fetch(_ context.Context, req FetchRequest, dest string) ([]string, error) {
 	src := filepath.Join(req.MountSource, req.Subpath)
+
+	// Guard against path traversal: the resolved source must stay under the
+	// mount root. A malicious subpath like "../../etc" would escape otherwise.
+	if !underRoot(req.MountSource, src) {
+		return nil, fmt.Errorf("nfs subpath %q escapes mount source %q", req.Subpath, req.MountSource)
+	}
+
 	// #nosec G304 -- src is built from caller-supplied mount_source/subpath
-	// which are already validated by the store.
+	// which are validated above via underRoot.
 	info, err := os.Stat(src)
 	if err != nil {
 		return nil, fmt.Errorf("nfs source %q: %w", src, err)

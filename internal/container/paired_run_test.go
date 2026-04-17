@@ -481,6 +481,15 @@ func TestPairedRun_ValidatesSpec(t *testing.T) {
 			want: "run_id",
 		},
 		{
+			name: "invalid run_id characters",
+			spec: container.PairedRunSpec{
+				RunID:     "r/../evil",
+				Engine:    container.EngineSpec{Image: "e"},
+				Benchmark: container.BenchmarkSpec{Image: "b"},
+			},
+			want: "invalid",
+		},
+		{
 			name: "missing engine image",
 			spec: container.PairedRunSpec{
 				RunID:     "r",

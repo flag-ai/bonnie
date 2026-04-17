@@ -100,6 +100,11 @@ func TestBenchmark_MissingFields(t *testing.T) {
 			want: "run_id is required",
 		},
 		{
+			name: "invalid run_id characters",
+			body: `{"run_id":"r/../evil","engine":{"image":"e"},"benchmark":{"image":"b"}}`,
+			want: "invalid",
+		},
+		{
 			name: "missing engine.image",
 			body: `{"run_id":"r","benchmark":{"image":"b"}}`,
 			want: "engine.image is required",

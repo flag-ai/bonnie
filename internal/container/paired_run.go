@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -77,6 +78,21 @@ const resultsVolumeMount = "/results"
 // resultsFile is the well-known results artifact the benchmark must produce.
 const resultsFile = "out.json"
 
+// validRunID matches safe Docker resource name characters: alphanumeric, dash,
+// and underscore. RunIDs are interpolated into Docker network, volume, and
+// container names, so shell metacharacters, slashes, or spaces would cause API
+// errors or unexpected behaviour.
+var validRunID = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// ValidateRunID returns an error if id contains characters unsafe for use in
+// Docker resource names.
+func ValidateRunID(id string) error {
+	if !validRunID.MatchString(id) {
+		return fmt.Errorf("run_id %q is invalid: must match [a-zA-Z0-9_-]+", id)
+	}
+	return nil
+}
+
 // defaultEngineHealthTimeout is used when HealthCheck.TimeoutSeconds <= 0.
 const defaultEngineHealthTimeout = 300
 
@@ -91,6 +107,9 @@ func (m *Manager) PairedRun(ctx context.Context, spec PairedRunSpec, events chan
 
 	if spec.RunID == "" {
 		return fmt.Errorf("paired run: run_id is required")
+	}
+	if err := ValidateRunID(spec.RunID); err != nil {
+		return fmt.Errorf("paired run: %w", err)
 	}
 	if spec.Engine.Image == "" {
 		return fmt.Errorf("paired run: engine.image is required")
@@ -213,9 +232,16 @@ func (m *Manager) PairedRun(ctx context.Context, spec PairedRunSpec, events chan
 	return nil
 }
 
+// terminalEventTimeout is how long we block trying to deliver a "result" or
+// "error" event before giving up. These events carry the run outcome and
+// dropping them would leave SSE clients hanging with no conclusion.
+const terminalEventTimeout = 10 * time.Second
+
 // runState is shared between the orchestrator and log-streaming goroutines so
-// cleanup knows which IDs to tear down. Events are emitted non-blockingly: if
-// the client is slow, we drop the event rather than stall the entire run.
+// cleanup knows which IDs to tear down. Progress events are emitted
+// non-blockingly (dropped if the channel is full), but terminal events
+// ("result" and "error") block with a timeout so the SSE client always
+// receives the run outcome.
 type runState struct {
 	events   chan<- PairedRunEvent
 	start    time.Time
@@ -228,11 +254,24 @@ func (s *runState) emit(ev PairedRunEvent) {
 	if ev.Timestamp.IsZero() {
 		ev.Timestamp = time.Now().UTC()
 	}
+
+	// Terminal events ("result", "error") must reach the client so the SSE
+	// stream has a definitive outcome. We block with a timeout rather than
+	// dropping silently. Progress events use non-blocking send — dropping
+	// one is harmless since the next progress event supersedes it.
+	if ev.Type == "result" || ev.Type == "error" {
+		select {
+		case s.events <- ev:
+		case <-time.After(terminalEventTimeout):
+			// Channel full for 10 s — the consumer is stuck or gone.
+		}
+		return
+	}
+
 	select {
 	case s.events <- ev:
 	default:
-		// Event dropped; the client is not keeping up. We don't block the
-		// orchestrator for this.
+		// Progress event dropped; the client is not keeping up.
 	}
 }
 
@@ -473,6 +512,11 @@ func waitForExit(ctx context.Context, client DockerClient, containerID string) (
 	}
 }
 
+// maxResultsSize is the upper bound on out.json before we reject it. This
+// prevents a malicious benchmark container from OOM-ing the agent by writing
+// an arbitrarily large results file.
+const maxResultsSize = 256 * 1024 * 1024 // 256 MB
+
 // readResults extracts /results/out.json from the benchmark container.
 func readResults(ctx context.Context, client DockerClient, containerID string) (json.RawMessage, error) {
 	path := resultsVolumeMount + "/" + resultsFile
@@ -494,9 +538,14 @@ func readResults(ctx context.Context, client DockerClient, containerID string) (
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
-		data, err := io.ReadAll(tr)
+		// Cap the read so a malicious benchmark can't OOM the agent.
+		limited := io.LimitReader(tr, maxResultsSize+1)
+		data, err := io.ReadAll(limited)
 		if err != nil {
 			return nil, fmt.Errorf("read results file: %w", err)
+		}
+		if len(data) > maxResultsSize {
+			return nil, fmt.Errorf("results file exceeds %d bytes size limit", maxResultsSize)
 		}
 		if !json.Valid(data) {
 			return nil, fmt.Errorf("results file is not valid JSON")
