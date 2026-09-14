@@ -17,9 +17,9 @@ BONNIE is a GPU host agent for the [FLAG platform](https://github.com/flag-ai). 
 
 ```bash
 go build -ldflags "\
-  -X github.com/flag-ai/commons/version.Version=$(cat VERSION) \
-  -X github.com/flag-ai/commons/version.Commit=$(git rev-parse --short HEAD) \
-  -X github.com/flag-ai/commons/version.Date=$(date -u +%Y-%m-%d)" \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Version=$(cat VERSION) \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Commit=$(git rev-parse --short HEAD) \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Date=$(date -u +%Y-%m-%d)" \
   ./cmd/bonnie
 ```
 

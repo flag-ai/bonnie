@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/flag-ai/commons/logging"
-	"github.com/flag-ai/commons/secrets"
+	"github.com/flag-ai/bonnie/internal/flagcommons/logging"
+	"github.com/flag-ai/bonnie/internal/flagcommons/secrets"
 )
 
 // Config holds all BONNIE configuration.

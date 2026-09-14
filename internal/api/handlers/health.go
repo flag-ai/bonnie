@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/flag-ai/commons/health"
+	"github.com/flag-ai/bonnie/internal/flagcommons/health"
 
 	"github.com/flag-ai/bonnie/internal/container"
 )
