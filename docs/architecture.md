@@ -45,7 +45,7 @@ BONNIE (Bidirectional Orchestration and Node Interconnect Executor) is a GPU hos
 | Package | Path | Responsibility |
 |---------|------|----------------|
 | `config` | `internal/config` | BONNIE-specific config loading via secrets provider |
-| `flagcommons` | `internal/flagcommons` | Vendored secrets, logging, health and version packages (formerly `github.com/flag-ai/commons`) |
+| `flagcommons` | `internal/flagcommons` | Vendored secrets, logging, health and version packages (formerly `github.com/flag-ai/commons`); the upstream database/HTTP checkers and logging context helpers are intentionally omitted, see `internal/flagcommons/doc.go` |
 | `gpu` | `internal/gpu` | GPU detection, vendor parsers, polling, CommandRunner interface |
 | `container` | `internal/container` | Docker client interface, container CRUD, GPU runtime injection, log streaming |
 | `system` | `internal/system` | Host system information collection |
@@ -85,7 +85,7 @@ BONNIE (Bidirectional Orchestration and Node Interconnect Executor) is a GPU hos
 
 ## Technology Stack
 
-- **Language:** Go 1.24+
+- **Language:** Go 1.25+
 - **Router:** Chi v5
 - **Docker:** Docker SDK v28
 - **Shared infrastructure:** `internal/flagcommons` (secrets, logging, health, version), vendored from Go flag-commons `v0.2.1`
