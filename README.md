@@ -2,7 +2,7 @@
 
 **Bidirectional Orchestration and Node Interconnect Executor**
 
-BONNIE is a GPU host agent for the [FLAG platform](https://github.com/flag-ai). It runs as a long-lived daemon on GPU nodes, providing hardware detection, container lifecycle management, and a REST API for orchestration. It uses [flag-commons](https://github.com/flag-ai/commons) for shared infrastructure (secrets, logging, config, health).
+BONNIE is a GPU host agent for the [FLAG platform](https://github.com/flag-ai). It runs as a long-lived daemon on GPU nodes, providing hardware detection, container lifecycle management, and a REST API for orchestration. Shared infrastructure (secrets, logging, health, version) is vendored under `internal/flagcommons`, copied from the Go [flag-commons](https://github.com/flag-ai/commons) library at `v0.2.1` (tag `go-final-v0.2.1`); BONNIE has no external dependency on that repository.
 
 ## Features
 
@@ -17,9 +17,9 @@ BONNIE is a GPU host agent for the [FLAG platform](https://github.com/flag-ai). 
 
 ```bash
 go build -ldflags "\
-  -X github.com/flag-ai/commons/version.Version=$(cat VERSION) \
-  -X github.com/flag-ai/commons/version.Commit=$(git rev-parse --short HEAD) \
-  -X github.com/flag-ai/commons/version.Date=$(date -u +%Y-%m-%d)" \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Version=$(cat VERSION) \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Commit=$(git rev-parse --short HEAD) \
+  -X github.com/flag-ai/bonnie/internal/flagcommons/version.Date=$(date -u +%Y-%m-%d)" \
   ./cmd/bonnie
 ```
 

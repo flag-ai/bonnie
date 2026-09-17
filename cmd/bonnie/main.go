@@ -14,9 +14,9 @@ import (
 
 	dockerclient "github.com/docker/docker/client"
 
-	"github.com/flag-ai/commons/health"
-	"github.com/flag-ai/commons/secrets"
-	"github.com/flag-ai/commons/version"
+	"github.com/flag-ai/bonnie/internal/flagcommons/health"
+	"github.com/flag-ai/bonnie/internal/flagcommons/secrets"
+	"github.com/flag-ai/bonnie/internal/flagcommons/version"
 
 	"github.com/flag-ai/bonnie/internal/api"
 	"github.com/flag-ai/bonnie/internal/config"

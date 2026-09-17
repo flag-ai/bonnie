@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/flag-ai/bonnie/internal/api/handlers"
-	"github.com/flag-ai/commons/health"
+	"github.com/flag-ai/bonnie/internal/flagcommons/health"
 )
 
 // mockDockerClient implements container.DockerClient for handler tests.

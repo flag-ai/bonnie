@@ -9,8 +9,8 @@ import (
 	"github.com/flag-ai/bonnie/internal/api/handlers"
 	"github.com/flag-ai/bonnie/internal/api/middleware"
 	"github.com/flag-ai/bonnie/internal/container"
+	"github.com/flag-ai/bonnie/internal/flagcommons/health"
 	"github.com/flag-ai/bonnie/internal/gpu"
-	"github.com/flag-ai/commons/health"
 )
 
 // RouterConfig holds dependencies for building the API router.

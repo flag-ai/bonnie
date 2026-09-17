@@ -23,9 +23,9 @@ import (
 
 	"github.com/flag-ai/bonnie/internal/api"
 	"github.com/flag-ai/bonnie/internal/container"
+	"github.com/flag-ai/bonnie/internal/flagcommons/health"
 	"github.com/flag-ai/bonnie/internal/gpu"
 	"github.com/flag-ai/bonnie/internal/storage"
-	"github.com/flag-ai/commons/health"
 )
 
 // mockDockerClient for integration tests.

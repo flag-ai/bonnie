@@ -15,3 +15,8 @@ vendor/
 *.swp
 *.swo
 *~
+
+# Local env
+.env
+.env.*
+!.env.example

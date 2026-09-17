@@ -30,9 +30,9 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           go build -ldflags "\
-            -X github.com/flag-ai/commons/version.Version=${{ github.ref_name }} \
-            -X github.com/flag-ai/commons/version.Commit=${{ github.sha }} \
-            -X github.com/flag-ai/commons/version.Date=$(date -u +%Y-%m-%d)" \
+            -X github.com/flag-ai/bonnie/internal/flagcommons/version.Version=${{ github.ref_name }} \
+            -X github.com/flag-ai/bonnie/internal/flagcommons/version.Commit=${{ github.sha }} \
+            -X github.com/flag-ai/bonnie/internal/flagcommons/version.Date=$(date -u +%Y-%m-%d)" \
             -o bonnie-${{ matrix.goos }}-${{ matrix.goarch }} \
             ./cmd/bonnie
 
